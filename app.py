@@ -75,10 +75,10 @@ def send_whatsapp_template_concert(to_number: str, name: str, seat: int, event_t
 
 
 # ------------------ EXISTING CONFIG --------------------------------------------
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "ConcertBookings")
+GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "HitechConcertBookings")
 GOOGLE_SHEET_KEY = os.getenv("GOOGLE_SHEET_KEY")
 SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE", "/etc/secrets/service_account.json")
-APP_BASE_URL = os.getenv("APP_BASE_URL", "https://concert-seats-70k7.onrender.com")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "https://hitech-seat-booking.onrender.com")
 CLEAR_TOKEN = os.getenv("CLEAR_TOKEN")
 
 SCOPES = [
@@ -257,6 +257,13 @@ def clear_sheet_route():
         return jsonify({"ok": True, "message": clear_google_sheet_values()})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)})
+
+
+# ---------- Health Check ----------
+@app.route("/health", methods=["GET", "HEAD"])
+def health():
+    # Do NOT touch external services here; must be fast and reliable
+    return jsonify({"status": "ok"}), 200
 
 
 if __name__ == "__main__":
