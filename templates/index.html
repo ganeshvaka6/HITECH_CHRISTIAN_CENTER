@@ -1,0 +1,286 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Potter's House Live Music Concert</title>
+<style>
+    :root {
+        --seat-size: 40px;      /* seat square size */
+        --cell-gap: 5px;        /* regular small gap between seats */
+        --middle-gap: 40px;     /* the space after seat 5 and seat 10 (same as seat size) */
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f8f9fa;
+    }
+    h1 { text-align: center; color: #333; }
+
+    #registration-section {
+        text-align: center;
+        margin: 20px auto;
+        max-width: 900px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    /* === Seat window: vertical stack of rows, horizontally scrollable === */
+    #seat-container {
+        display: flex;                 /* stack rows vertically */
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;              /* horizontal scroll for the entire table */
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;           /* space for scrollbar on mobile */
+        border: 1px solid #ddd;        /* optional visual boundary */
+        border-radius: 6px;
+        background: #fafafa;
+    }
+
+    /* One row: 15 seats; gaps created by margins (no extra elements) */
+    .row {
+        display: flex;
+        flex-direction: row;
+        gap: var(--cell-gap);
+        flex-wrap: nowrap;             /* keep all seats in one line */
+        width: max-content;            /* ensures full row width for scrolling */
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .seat {
+        width: var(--seat-size);
+        height: var(--seat-size);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        color: black;
+        box-sizing: border-box;
+        user-select: none;
+    }
+    .available {
+        background-color: white;
+        border: 2px solid #28a745;
+    }
+    .selected {
+        background-color: #28a745;
+        color: white;
+        border: 2px solid #000;
+    }
+    .booked {
+        background-color: #6c757d;
+        color: white;
+        cursor: not-allowed;
+    }
+
+    /* === Insert the larger space after seat positions 5 and 10 in EACH row === */
+    .row .seat:nth-child(5) { margin-right: var(--middle-gap); }  /* gap between 5 and 6 */
+    .row .seat:nth-child(10) { margin-right: var(--middle-gap); } /* gap between 10 and 11 */
+
+    #selected-info {
+        max-width: 500px;
+        margin: 20px auto;
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    #selected-info div { margin-bottom: 10px; }
+    input[type="text"] {
+        width: 45%;
+        padding: 5px;
+        margin: 5px;
+        box-sizing: border-box;
+    }
+    button {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button:hover { background-color: #0056b3; }
+
+    .blink-text {
+        color: #dc3545;
+        font-size: 16px;
+        font-weight: bold;
+        animation: blink 1s infinite;
+    }
+    @keyframes blink {
+        0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; }
+    }
+
+    /* Optional: slightly shrink seats on very small screens (still scrollable). */
+    @media (max-width: 480px) {
+        :root {
+            --seat-size: 34px;
+            --cell-gap: 4px;
+            --middle-gap: 34px; /* keep gap equal to seat size */
+        }
+        .seat { font-size: 12px; }
+        #selected-info { max-width: 95%; padding: 12px; }
+        input[type="text"] { width: 100%; margin: 6px 0; }
+    }
+</style>
+</head>
+<body>
+
+<div id="registration-section">
+    <h1>The Potter's House<br>Special Live Music Concert</h1>
+    <p class="blink-text">Limited Slots for Free Registration</p>
+    <p><strong>Event Timing:</strong> February 28th, 2026, at 7:00 PM</p>
+    <p><strong>Event Address:</strong><br>
+        Potter's House, 3rd Floor, above Westside,<br>
+        next to Himagiri Hospital,Gachibowli Stadium Road,<br>
+        Rajeev Gandhi Nagar, Indira Nagar,<br>
+        Gachibowli, Hyderabad, Telangana 500032
+    </p>
+    <div style="font-size:18px; color:#007bff; margin:15px 0;">Register here:</div>
+
+    <div id="seat-container"></div>
+</div>
+
+<div id="selected-info">
+    <h3>Selected Seats</h3>
+    <div id="seat-details"></div>
+    <button id="submit-btn">Book Seats</button>
+</div>
+
+<script>
+const seatCount = 300;   // Total seats
+const seatsPerRow = 15;  // 15 seats per row (visual gaps after 5 and 10)
+let selectedSeats = [];
+
+async function loadSeats() {
+    const seatContainer = document.getElementById('seat-container');
+
+    // Fetch booked seats from server
+    let bookedSeats = [];
+    try {
+        const response = await fetch('/booked-seats');
+        const data = await response.json();
+        bookedSeats = Array.isArray(data.booked) ? data.booked : [];
+    } catch (e) {
+        console.warn('Booked seats fetch failed, rendering all as available.');
+    }
+
+    // Render rows. Each row: 15 seat elements; gaps created by CSS nth-child margins.
+    let seatNumber = 1;
+    const totalRows = Math.ceil(seatCount / seatsPerRow); // 210 => 14 rows
+
+    for (let row = 1; row <= totalRows; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+
+        for (let i = 1; i <= seatsPerRow && seatNumber <= seatCount; i++) {
+            const seat = document.createElement('div');
+            seat.classList.add('seat');
+            seat.textContent = String(seatNumber);
+
+            // Store the seat number on the element to avoid closure issues
+            seat.dataset.seat = String(seatNumber);
+
+            if (bookedSeats.includes(seatNumber)) {
+                seat.classList.add('booked');
+            } else {
+                seat.classList.add('available');
+                seat.addEventListener('click', onSeatClick);
+            }
+
+            rowDiv.appendChild(seat);
+            seatNumber++;
+        }
+
+        seatContainer.appendChild(rowDiv);
+    }
+}
+
+// Click handler reads the seat number from the element itself (stable per element)
+function onSeatClick(event) {
+    // In case inner content is clicked, ensure we target the .seat element
+    const seat = event.currentTarget; // always the element the listener was attached to
+    const seatNumber = parseInt(seat.dataset.seat, 10);
+
+    toggleSeat(seat, seatNumber);
+}
+
+function toggleSeat(seat, seatNumber) {
+    if (selectedSeats.includes(seatNumber)) {
+        selectedSeats = selectedSeats.filter(s => s !== seatNumber);
+        seat.classList.remove('selected');
+        seat.classList.add('available');
+    } else {
+        selectedSeats.push(seatNumber);
+        seat.classList.remove('available');
+        seat.classList.add('selected');
+    }
+    updateSelectedInfo();
+}
+
+function updateSelectedInfo() {
+    const seatDetails = document.getElementById('seat-details');
+    seatDetails.innerHTML = selectedSeats.map(s => `
+        <div>
+            <strong>Your Selected Seat Number: ${s}</strong><br>
+            <input type="text" placeholder="Name" id="name-${s}">
+            <input type="text" placeholder="Phone number" id="mobile-${s}">
+        </div>
+    `).join('');
+}
+
+document.getElementById('submit-btn').addEventListener('click', async () => {
+    if (selectedSeats.length === 0) {
+        alert('Please select at least one seat.');
+        return;
+    }
+
+    const bookingData = selectedSeats.map(s => ({
+        seat: s,
+        name: (document.getElementById(`name-${s}`).value || '').trim(),
+        mobile: (document.getElementById(`mobile-${s}`).value || '').trim()
+    }));
+
+    for (const b of bookingData) {
+        if (!b.name || !b.mobile) {
+            alert(`Please enter Name and Phone for Seat ${b.seat}`);
+            return;
+        }
+    }
+
+    try {
+        const response = await fetch('/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: bookingData.map(b => b.name).join(', '),
+                mobile: bookingData.map(b => b.mobile).join(', '),
+                seats: selectedSeats
+            })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        if (result.ok) location.reload();
+    } catch (e) {
+        console.error('Submit failed:', e);
+        alert('Booking failed. Please try again.');
+    }
+});
+
+window.onload = loadSeats;
+</script>
+</body>
+</html>
