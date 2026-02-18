@@ -159,7 +159,7 @@
 </div>
 
 <script>
-const seatCount = 210;   // Total seats
+const seatCount = 105;   // Total seats
 const seatsPerRow = 15;  // 15 seats per row (visual gaps after 5 and 10)
 let selectedSeats = [];
 
@@ -178,7 +178,7 @@ async function loadSeats() {
 
     // Render rows. Each row: 15 seat elements; gaps created by CSS nth-child margins.
     let seatNumber = 1;
-    const totalRows = Math.ceil(seatCount / seatsPerRow); // 210 => 14 rows
+    const totalRows = Math.ceil(seatCount / seatsPerRow); // 105 => 14 rows
 
     for (let row = 1; row <= totalRows; row++) {
         const rowDiv = document.createElement('div');
