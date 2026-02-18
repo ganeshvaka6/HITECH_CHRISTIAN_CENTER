@@ -222,7 +222,7 @@ def submit():
         return jsonify({
             "ok": True,
             "message": f"Thank you for registering! Seat(s) {final} confirmed."
-        }), 105
+        }), 200
 
     except Exception as e:
         return jsonify({"ok": False, "message": f"Failed: {e}"}), 500
