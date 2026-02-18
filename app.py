@@ -181,7 +181,7 @@ def pair_rows_for_booking(user_code, names_list, mobiles_list, seats_ordered):
 # ---------- Routes ----------
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", seat_count=210)
+    return render_template("index.html", seat_count=105)
 
 
 @app.route("/submit", methods=["POST"])
@@ -205,7 +205,7 @@ def submit():
             if not names or not mobiles or not seats:
                 return jsonify({"ok": False, "message": "Name, Mobile, Seat required"}), 400
 
-            invalid = [s for s in seats if s < 1 or s > 210]
+            invalid = [s for s in seats if s < 1 or s > 105]
             if invalid:
                 return jsonify({"ok": False, "message": f"Invalid seats: {invalid}"}), 400
 
@@ -222,7 +222,7 @@ def submit():
         return jsonify({
             "ok": True,
             "message": f"Thank you for registering! Seat(s) {final} confirmed."
-        }), 210
+        }), 105
 
     except Exception as e:
         return jsonify({"ok": False, "message": f"Failed: {e}"}), 500
