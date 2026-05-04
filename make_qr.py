@@ -1,7 +1,7 @@
 
 import qrcode
 
-APP_BASE_URL = "https://hitech-seat-booking.onrender.com"
+APP_BASE_URL = "https://hitech-christian-center.onrender.com"
 
 endpoint = "/"
 full_url = f"{APP_BASE_URL.rstrip('/')}{endpoint}"
